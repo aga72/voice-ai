@@ -30,9 +30,13 @@ def health():
 
 # ---- API ----
 class MessageIn(BaseModel):
-    text: str
+    message: str
+    author: str
 
 @app.post("/api/messages")
 def create_message(body: MessageIn):
-    doc_ref = db.collection("messages").add({"text": body.text})
+    doc_ref = db.collection("messages").add({
+        "message": body.message,
+        "author": body.author 
+    })
     return {"ok": True, "id": doc_ref[1].id}
