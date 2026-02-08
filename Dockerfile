@@ -1,14 +1,40 @@
+# ============================================
+# STAGE 1: Build React Frontend
+# ============================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /app/frontend-react
+
+# Copy package files and install dependencies
+COPY frontend-react/package*.json ./
+RUN npm ci
+
+# Copy frontend source and build
+COPY frontend-react/ ./
+RUN npm run build
+
+# Result: /app/frontend-react/dist/ contains built files
+
+
+# ============================================
+# STAGE 2: Python Runtime (Final Image)
+# ============================================
 FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY backend/requirements.txt /app/backend/requirements.txt
-RUN pip install --no-cache-dir -r /app/backend/requirements.txt
+# Install Python dependencies
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-COPY backend /app/backend
-COPY frontend /app/frontend
+# Copy backend code
+COPY backend/ ./backend/
 
-ENV PORT=8080
+# Copy built frontend from stage 1
+COPY --from=frontend-builder /app/frontend-react/dist ./frontend/dist
+
+# Expose port
 EXPOSE 8080
 
-CMD ["sh", "-c", "uvicorn backend.main:app --host 0.0.0.0 --port ${PORT}"]
+# Run FastAPI
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]

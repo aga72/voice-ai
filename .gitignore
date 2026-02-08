@@ -19,3 +19,10 @@ yarn-error.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Node modules (will be installed in Docker)
+frontend-react/node_modules
+frontend-react/dist
+
+# Build artifacts
+*.log

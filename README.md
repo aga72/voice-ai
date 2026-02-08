@@ -95,7 +95,7 @@ npm run preview      # Preview production build locally
     ```
 3. Make the public URL unavailable (without deleting the service) by removing public invoker access:
     ```bash
-    gcloud run services remove-iam-policy-binding <SERVICE_NAME> --region us-central1 --member "allUsers" --role "roles/run.invoker"
+    gcloud run services remove-iam-policy-binding <SERVICE_NAME> --region us-central1 --member "allUsers" --role "roles/run.invoker" --env-vars-file env.yaml
     ```
 4. Update (redeploy) after source changes by deploying the same service name again:
     ```bash
@@ -279,3 +279,18 @@ These are stretch goals for later iterations.
 - Mobile optimization:
   - Make the UI responsive and mobile-friendly.
   - Optionally add PWA support for “installable” behavior.
+
+## Development Workflow
+
+### Option 1: Frontend Development (Hot Reload)
+```bash
+# Terminal 1: Start backend
+docker-compose up
+
+# Terminal 2: Start React dev server
+cd frontend-react
+npm run dev
+
+# Test Production Build Locally
+docker-compose up --build
+
