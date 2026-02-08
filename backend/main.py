@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -7,6 +8,12 @@ from pydantic import BaseModel
 
 import firebase_admin
 from firebase_admin import firestore
+
+from google import genai
+from google.genai import types
+
+GEM_API_KEY = os.getenv("GEMINI_API_KEY")
+gemini_client = genai.Client(api_key=GEM_API_KEY)
 
 app = FastAPI()
 
@@ -33,6 +40,9 @@ class MessageIn(BaseModel):
     message: str
     author: str
 
+class ChatIn(BaseModel):
+    prompt: str
+
 @app.post("/api/messages")
 def create_message(body: MessageIn):
     doc_ref = db.collection("messages").add({
@@ -40,3 +50,12 @@ def create_message(body: MessageIn):
         "author": body.author 
     })
     return {"ok": True, "id": doc_ref[1].id}
+
+@app.post("/api/chat")
+def chat(body: ChatIn):
+    response = gemini_client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=body.prompt
+    )
+    
+    return {"reply": response.text}
