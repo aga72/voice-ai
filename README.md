@@ -29,6 +29,38 @@ A beginner-friendly full-stack starter to deploy a simple web app on GCP (Cloud 
    gcloud config set project <PROJECT_ID>
    ```
 10. Install [Node](https://nodejs.org/en/download) for Windows.
+11. Verify Node and NPM are installed:
+    ```bash
+    node --version
+    npm --version
+    ```
+12. Navigate to your project root directory:
+    ```bash
+    cd path\to\your\project
+    ```
+13. Create a new React + TypeScript project with Vite:
+    ```bash
+    npm create vite@latest frontend-react -- --template react-ts
+    ```
+14. Navigate into the new frontend directory and install dependencies:
+    ```bash
+    cd frontend-react
+    npm install
+    ```
+15. Start the React development server:
+    ```bash
+    npm run dev
+    ```
+16. Open your browser to http://localhost:5173/ to verify the React app is running.
+17. Press `Ctrl + C` in the terminal to stop the dev server when done.
+
+## Useful Frontend (React) commands
+```bash
+cd frontend-react
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build locally
+```
 
 ## Useful Git commands
 1. Create a root `.gitignore` (so generated files don’t get committed); GitHub maintains common templates you can borrow from.
