@@ -293,4 +293,16 @@ npm run dev
 
 # Test Production Build Locally
 docker-compose up --build
+```
+
+## Styling
+Blue: #005798 (Primary Brand Color, headings etc)
+Yellow / Gold: #FCB913 (Primary Action / CTA Color)
+Orange: #F47C20
+Red: #CE1434 (Errors/Secondary color)
+Grey: #3C434F (Body text)
+
+Font: Montserrat for HeadingsSubheadings
+Font: Roboto for Body Text
+
 
