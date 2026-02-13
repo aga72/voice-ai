@@ -43,7 +43,7 @@ function CriteriaCard(props: CriteriaCardProps) {
                     </div>
                 </div>
             </button>
-            <h3 className="font-heading font-semibold text-md text-brand-grey flex-1">
+            <h3 className="font-heading font-semibold text-md text-brand-grey flex-1 truncate">
                 {title}
             </h3>
             <button 
