@@ -2,13 +2,23 @@ import { useState } from 'react';
 
 type HeroProps = {
   onEvaluate: (url: string) => void;
+  isAnalyzing: boolean;
+hasAnalyzed: boolean;
 };
 
-function Hero({ onEvaluate }: HeroProps) {
+function Hero({ onEvaluate, isAnalyzing, hasAnalyzed }: HeroProps) {
     const [url, setUrl] = useState("");
 
+    // Determine the button text based on the current state
+    let buttonText = "Evaluate Company";
+    if (isAnalyzing) {
+        buttonText = "Evaluating...";
+    } else if (hasAnalyzed) {
+        buttonText = "Run Again";
+    }
+
     return (
-        <div className="bg-white rounded-lg border-gray-300 border drop-shadow-xl px-3 py-4 flex flex-col md:flex-row gap-1 justify-between mb-12">
+        <div className="bg-white rounded-lg border-gray-300 border drop-shadow-xl px-3 py-4 flex flex-col md:flex-row gap-1 justify-between mb-14">
             {/* URL Input Box */}
             <textarea 
                 placeholder="Paste Company URL (e.g., www.stripe.com)"
@@ -20,9 +30,15 @@ function Hero({ onEvaluate }: HeroProps) {
             {/* Analyze Button */}
             <button 
                 onClick={() => onEvaluate(url)}
-                className="bg-brand-gold hover:bg-amber-500 rounded-lg border-brand-gold hover:border-amber-500 border-3 px-4 py-2 w-full md:w-auto h-12 whitespace-nowrap duration-200 flex items-center justify-center hover:-translate-y-0.25 shadow-md hover:shadow-lg transition-all duration-100">
-                <span className="font-heading text-lg text-brand-grey font-bold">
-                    Evaluate Company
+                disabled={isAnalyzing || !url.trim()} 
+                className={`rounded-lg border-3 px-4 py-2 w-full md:w-auto h-12 whitespace-nowrap flex items-center justify-center shadow-md transition-all duration-200 
+                ${isAnalyzing || !url.trim() 
+                    ? 'bg-gray-200 border-gray-200 cursor-not-allowed opacity-80' 
+                    : 'bg-brand-gold hover:bg-amber-500 border-brand-gold hover:border-amber-500 hover:-translate-y-0.25 hover:shadow-lg' 
+                }`}
+            >
+                <span className={`font-heading text-lg font-bold ${isAnalyzing ? 'animate-pulse text-gray-500' : 'text-brand-grey'}`}>
+                    {buttonText}
                 </span>
             </button>
         </div>

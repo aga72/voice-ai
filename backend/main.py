@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 import firebase_admin
 from firebase_admin import firestore
@@ -83,6 +84,23 @@ class CriterionUpdate(BaseModel):
 
 class CriterionOut(CriterionBase):
     id: str
+
+class CriterionAnalysisSchema(BaseModel):
+    match_percentage: int = Field(
+        description="Level of alignment between the target company and the acquisition criterion, from 0 to 100."
+    )
+    confidence_score: str = Field(
+        description="Gemini's Confidence in the assessment based strictly on available content, available options low, med, high."
+    )
+    reasoning: str = Field(
+        description="Detailed, professional explanation of why the match_percentage was assigned, referencing specific aspects of the company and the criterion."
+    )
+    quoted_evidence: List[str] = Field(
+        description='List of evidence strings like: "<Exact quoted excerpt from the website content>"'
+    )
+    sources: List[str] = Field(
+        description='List of source URLs corresponding to the quoted evidence, in the same order. So sources[i] is the source for quoted_evidence[i].'
+    )
 
 @app.get("/api/criteria", response_model=list[CriterionOut])
 def list_criteria():
@@ -190,49 +208,28 @@ def chat(body: ChatIn):
     2. Utilize your web crawling capabilities to access publicly available information and any relevant supplemental web sources to gather comprehensive information about the company and the sector, industry, and market that it operates in. This includes, but is not limited to, recent news, financial data, customer reviews, and industry analyses.
     3. Based on the above crawled information, evaluate how well the target company aligns with the provided Criterion Title and Criterion Description. Consider all relevant aspects of the company, including its products/services, market position, financial performance, customer base, growth trajectory, and any other factors that are pertinent to the criterion.
     4. Determine a Match Percentage (0-100) indicating the level of alignment between the target company and the acquisition criterion, where 0% means no alignment at all and 100% means perfect alignment. Be sure to weigh all relevant factors appropriately in your assessment.
-    5. Determine a Confidence Score (0-100) indicating how confident you are in your assessment based strictly on the crawled content (e.g., if the website lacks pricing/revenue data for a financial criterion, the confidence score should be low).
+    5. Determine a Confidence Score (low, med, high) indicating how confident you are in your assessment based strictly on the crawled content (e.g., if the website lacks pricing/revenue data for a financial criterion, the confidence score should be low).
     6. Extract exact quotes from the website content that justify your evaluation, and provide the source links for each quote.
 
-    Output Format: You must return your response in the following strict JSON format without any markdown formatting or conversational text outside of the JSON block:
-    {{ "match_percentage": <integer from 0 to 100>, "confidence_score": <integer from 0 to 100>, "reasoning": "<A detailed, professional explanation of why you assigned the match percentage, analyzing specific aspects of the company as it relates to the criterion.>", "quoted_evidence": [ "<Exact quote 1 from the website content> - <source-link-1>", "<Exact quote 2 from the website content> - <source-link-2>" ] }}
+    ### CRITICAL JSON OUTPUT CONSTRAINTS
+    - Fill out all fields of the JSON schema you were given.
+    - Do not add explanation, commentary, or extra text to JSON output; keep it pure JSON output
+    - Do not add JSON comments in between, whatever has to be written within the  values
+    - Ensure you add escape characters to all the string values wherever applicable
+    - DO NOT WRITE OUT THINKING.
+    - Pure JSON output is expected and any deviation from that will be considered a failure in adhering to the output format.
+    - Double check if the JSON is valid and has all the escape characters in place for values, all field names and structures matches to given JSON output sample, no JSON comments, etc.
     """
 
 
     response = gemini_client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3-flash-preview",
         contents=full_prompt,
-        config=GenerateContentConfig(tools=tools,)
+        config=GenerateContentConfig(
+            response_mime_type="application/json",
+            response_json_schema=CriterionAnalysisSchema.model_json_schema(),
+        ),
     )
 
-    candidate = response.candidates[0]
-    reply_text = candidate.content.parts[0].text if candidate.content.parts else ""
-
-    # Try to extract the first JSON object from reply_text
-    parsed = None
-    try:
-        parsed = json.loads(reply_text)
-    except json.JSONDecodeError:
-        # fallback: try to find first '{' and last '}' and parse that slice
-        start = reply_text.find("{")
-        end = reply_text.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            try:
-                parsed = json.loads(reply_text[start : end + 1])
-            except json.JSONDecodeError:
-                parsed = None
-
-    if parsed is None:
-        # if everything fails, surface the raw text so you can debug
-        return {
-            "error": "MODEL_JSON_PARSE_FAILED",
-            "raw_reply": reply_text,
-        }
-
-    url_context_metadata = getattr(candidate, "url_context_metadata", None)
-    grounding_metadata = getattr(candidate, "groundingMetadata", None)
-
-    return {
-        "analysis": parsed,
-        "url_context_metadata": url_context_metadata,
-        "grounding_metadata": grounding_metadata,
-    }
+    analysis = CriterionAnalysisSchema.model_validate_json(response.text)
+    return {"analysis": analysis}

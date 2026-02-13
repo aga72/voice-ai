@@ -95,7 +95,7 @@ npm run preview      # Preview production build locally
     ```
 3. Make the public URL unavailable (without deleting the service) by removing public invoker access:
     ```bash
-    gcloud run services remove-iam-policy-binding <SERVICE_NAME> --region us-central1 --member "allUsers" --role "roles/run.invoker" --env-vars-file env.yaml
+    gcloud run services remove-iam-policy-binding <SERVICE_NAME> --region us-central1 --member "allUsers" --role "roles/run.invoker" 
     ```
 4. Update (redeploy) after source changes by deploying the same service name again:
     ```bash

@@ -6,4 +6,5 @@ export interface CriterionAnalysis {
   confidenceScore: number;
   reasoning: string;
   quotedEvidence: string[];
+  sources: string[];
 }

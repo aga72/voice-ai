@@ -18,8 +18,9 @@ function App() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [analyses, setAnalyses] = useState<Record<string, CriterionAnalysis>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasAnalysis, setHasAnalysis] = useState(false);
+  const [analysisQueue, setAnalysisQueue] = useState<Criterion[]>([]);
 
-  
   useEffect(() => {
     const fetchCriteria = async () => {
       try {
@@ -148,138 +149,101 @@ function App() {
       ? criteria.find((c) => c.id === editingCriterionId) ?? null
       : null;
 
-  // const handleEvaluateCompany = async (companyUrl: string) => {
-  //   if (!companyUrl.trim()) return;
-
-  //   // show analysis view and clear any old results
-  //   setIsAnalyzing(true);
-  //   setAnalyses({});
-
-  //   // pick one active, non-deleted criterion for now
-  //   const active = criteria.find((c) => c.isActive && !c.isDeleted);
-  //   if (!active) {
-  //     console.warn("No active criterion to analyze");
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch("/api/chat", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ company_url: companyUrl }),
-  //     });
-
-  //     if (!res.ok) {
-  //       console.error("Gemini call failed", res.status);
-  //       return;
-  //     }
-
-  //     const data = await res.json();
-
-  //     if (data.error) {
-  //       console.error("Gemini JSON parse failed on server", data.raw_reply);
-  //       return;
-  //     }
-
-  //     const parsed = data.analysis as {
-  //       match_percentage: number;
-  //       confidence_score: number;
-  //       reasoning: string;
-  //       quoted_evidence: string[];
-  //     };
-
-  //     setAnalyses((prev) => ({
-  //       ...prev,
-  //       [active.id]: {
-  //         criterionId: active.id,
-  //         criterionTitle: active.title,
-  //         criterionDescription: active.description,
-  //         matchPercentage: parsed.match_percentage,
-  //         confidenceScore: parsed.confidence_score,
-  //         reasoning: parsed.reasoning,
-  //         quotedEvidence: parsed.quoted_evidence,
-  //       },
-  //     }));
-  //   } catch (err) {
-  //     console.error("Error calling /api/chat", err);
-  //   }
-  // };
-
-    const handleEvaluateCompany = async (companyUrl: string) => {
+  const handleEvaluateCompany = async (companyUrl: string) => {
     if (!companyUrl.trim()) return;
 
-    // switch to analysis view and clear old results
-    setIsAnalyzing(true);
-    setAnalyses({});
-
-    // collect all active, non-deleted criteria
     const activeCriteria = criteria.filter((c) => c.isActive && !c.isDeleted);
     if (activeCriteria.length === 0) {
       console.warn("No active criteria to analyze");
       return;
     }
 
-    for (const crit of activeCriteria) {
+    setHasAnalysis(true);
+    setIsAnalyzing(true);
+    setAnalyses({});
+    setAnalysisQueue(activeCriteria);
+
+    for (let i = 0; i < activeCriteria.length; i++) {
+      const crit = activeCriteria[i];
+
+      // 1) Seed placeholder for the current card
+      setAnalyses((prev) => ({
+        ...prev,
+        [crit.id]: {
+          criterionId: crit.id,
+          criterionTitle: crit.title,
+          criterionDescription: crit.description,
+          matchPercentage: 0,
+          confidenceScore: 0,
+          reasoning: "Analyzing…",
+          quotedEvidence: [],
+          sources: [],
+        },
+      }));
+
+
+      // 2) Await the API call ONLY
+      let result = null;
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            company_url: companyUrl,
-            // OPTIONAL: pass crit.id if you later teach backend to use it
-          }),
+          body: JSON.stringify({ company_url: companyUrl }),
         });
 
-        if (!res.ok) {
-          console.error("Gemini call failed for criterion", crit.id, res.status);
-          continue;
+        if (res.ok) {
+          const data = await res.json();
+          result = data.analysis;
+        } else {
+          console.error(`Fetch failed: ${res.status}`);
         }
+      } catch (err) {
+        console.error("Error calling /api/chat:", err);
+      }
 
-        const data = await res.json();
-
-        if (data.error) {
-          console.error(
-            "Gemini JSON parse failed on server for criterion",
-            crit.id,
-            data.raw_reply
-          );
-          continue;
-        }
-
-        const parsed = data.analysis as {
-          match_percentage: number;
-          confidence_score: number;
-          reasoning: string;
-          quoted_evidence: string[];
-        };
-
+      // 3) INSTANTLY update the UI with the result (or error state)
+      if (!result) {
+        setAnalyses((prev) => ({
+          ...prev,
+          [crit.id]: { ...prev[crit.id], reasoning: "Failed to load analysis." },
+        }));
+      } else {
         setAnalyses((prev) => ({
           ...prev,
           [crit.id]: {
-            criterionId: crit.id,
-            criterionTitle: crit.title,
-            criterionDescription: crit.description,
-            matchPercentage: parsed.match_percentage,
-            confidenceScore: parsed.confidence_score,
-            reasoning: parsed.reasoning,
-            quotedEvidence: parsed.quoted_evidence,
+            ...prev[crit.id],
+            matchPercentage: result.match_percentage,
+            confidenceScore: result.confidence_score,
+            reasoning: result.reasoning,
+            quotedEvidence: result.quoted_evidence,
+            sources: result.sources,
           },
         }));
-      } catch (err) {
-        console.error("Error calling /api/chat for criterion", crit.id, err);
       }
+
     }
+
+    setIsAnalyzing(false);
+    console.log("Currently analyzing:", isAnalyzing);
   };
+
 
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="max-w-4xl mx-auto px-6 py-12">
-        <Hero onEvaluate={handleEvaluateCompany} />
+        <Hero 
+            onEvaluate={handleEvaluateCompany} 
+            isAnalyzing={isAnalyzing} 
+            hasAnalyzed={hasAnalysis} 
+        />
 
-        {isAnalyzing ? (
-          <CriteriaAnalysisGrid analyses={analyses} />
+        {hasAnalysis ? (
+          <CriteriaAnalysisGrid
+            analyses={analyses}
+            analysisQueue={analysisQueue}
+          />
         ) : (
           <>
             <h2 className="font-heading text-xl font-semibold text-brand-blue">
