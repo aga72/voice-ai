@@ -10,6 +10,7 @@ type CriteriaCardProps = {
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDescriptionChange: (id: string, description: string) => void;
+  onDelete: (id: string) => void;
 };
 
 
@@ -21,13 +22,14 @@ function CriteriaCard(props: CriteriaCardProps) {
         title, 
         onToggle, 
         onEdit,
-        onDescriptionChange 
+        onDescriptionChange,
+        onDelete, 
     } = props;
 
     const [isActive, setIsActive] = useState(initialIsActive);
 
     return (
-    <div className="bg-white rounded-lg border-gray-300 border drop-shadow p-2 flex flex-col transition-all duration-300 hover:-translate-y-1">
+    <div className="bg-white rounded-lg border-gray-300 hover:border-brand-gold border drop-shadow hover:drop-shadow-xl p-2 flex flex-col transition-all duration-300 hover:-translate-y-1">
         <div className="flex items-center gap-3 mb-2">
             <button
                 onClick={() => {
@@ -49,7 +51,7 @@ function CriteriaCard(props: CriteriaCardProps) {
                     if (isActive) {
                     onEdit(id);
                     } else {
-                    console.log("trash clicked", id);
+                    onDelete(id);
                     }
                 }} 
                 className="flex-shrink-0 text-brand-grey hover:text-brand-blue transition-all duration-300 hover:-translate-y-0.5">

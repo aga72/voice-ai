@@ -36,6 +36,7 @@ function EditCriterionModal(props: EditCriterionModalProps) {
             <div className="flex items-center justify-between gap-4 mb-3">
                 <input
                     className="bg-white rounded-lg border-gray-300 border p-2 w-full h-10 resize-none outline-none font-heading text-md text-brand-grey focus:ring-2 focus:ring-brand-gold focus:border-transparent transition-colors overflow-hidden"
+                    placeholder="Criteria Title"
                     value={criterion.title}
                     onChange={(e) =>
                         props.onChange(criterion.id, { title: e.target.value })

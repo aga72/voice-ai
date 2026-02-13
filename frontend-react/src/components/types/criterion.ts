@@ -3,5 +3,6 @@ export interface Criterion {
   title: string;
   description: string;
   isActive: boolean;
+  isDeleted?: boolean;
 }
 

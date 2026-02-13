@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 import firebase_admin
 from firebase_admin import firestore
+from google.cloud.firestore_v1 import FieldFilter
 
 from google import genai
 from google.genai import types
@@ -21,7 +22,10 @@ app = FastAPI()
 # CORS middleware for development (optional in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # React dev server
+    allow_origins=[
+        "http://localhost:5173",  # Vite dev
+        "http://localhost:8080",  # Docker / combined frontend+backend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,6 +61,79 @@ class MessageIn(BaseModel):
 
 class ChatIn(BaseModel):
     prompt: str
+
+class CriterionBase(BaseModel):
+    title: str
+    description: str
+    isActive: bool
+
+class CriterionUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    isActive: bool | None = None
+    isDeleted: bool | None = None
+
+class CriterionOut(CriterionBase):
+    id: str
+
+@app.get("/api/criteria", response_model=list[CriterionOut])
+def list_criteria():
+    docs = (
+        db.collection("criteria")
+        .where(filter=FieldFilter("isDeleted", "==", False))
+        .stream()
+    )
+
+    items: list[CriterionOut] = []
+
+    for doc in docs:
+        data = doc.to_dict() or {}
+        item = CriterionOut(
+            id=doc.id,
+            title=data.get("title", ""),
+            description=data.get("description", ""),
+            isActive=data.get("isActive", True),
+        )
+        items.append(item)
+
+    return items
+
+@app.patch("/api/criteria/{criterion_id}")
+def update_criterion(criterion_id: str, body: CriterionUpdate):
+    updates: dict = {}
+
+    if body.title is not None:
+        updates["title"] = body.title
+    if body.description is not None:
+        updates["description"] = body.description
+    if body.isActive is not None:
+        updates["isActive"] = body.isActive
+    if body.isDeleted is not None:
+        updates["isDeleted"] = body.isDeleted
+
+    if not updates:
+        return {"ok": True}  # nothing to change
+
+    db.collection("criteria").document(criterion_id).update(updates)
+    return {"ok": True}
+
+@app.post("/api/criteria", response_model=CriterionOut)
+def create_criterion(body: CriterionBase):
+    doc_ref = db.collection("criteria").add({
+        "title": body.title,
+        "description": body.description,
+        "isActive": body.isActive,
+        "isDeleted": False,
+    })
+
+    new_id = doc_ref[1].id
+
+    return CriterionOut(
+        id=new_id,
+        title=body.title,
+        description=body.description,
+        isActive=body.isActive,
+    )
 
 @app.post("/api/messages")
 def create_message(body: MessageIn):
