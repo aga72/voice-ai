@@ -69,6 +69,7 @@ class MessageIn(BaseModel):
 
 class ChatIn(BaseModel):
     company_url: str
+    criterion_id: str 
 
 
 class CriterionBase(BaseModel):
@@ -171,29 +172,17 @@ def create_message(body: MessageIn):
 
 @app.post("/api/chat")
 def chat(body: ChatIn):
-    docs = (
-        db.collection("criteria")
-        .where(filter=FieldFilter("isActive", "==", True))
-        .where(filter=FieldFilter("isDeleted", "==", False))
-        .limit(1)
-        .stream()
-    )
+    doc_ref = db.collection("criteria").document(body.criterion_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        return {"error": f"Criterion {body.criterion_id} not found"}
 
-    active_criterion = None
-    for doc in docs:
-        data = doc.to_dict() or {}
-        active_criterion = {
-            "title": data.get("title", ""),
-            "description": data.get("description", ""),
-        }
-        break
+    data = doc.to_dict() or {}
 
-    if active_criterion is None:
-        # fallback so endpoint doesn’t explode if DB is empty
-        active_criterion = {
-            "title": "No active criterion found",
-            "description": "There were no active criteria in Firestore.",
-        }
+    active_criterion = {
+        "title": data.get("title", ""),
+        "description": data.get("description", ""),
+    }
 
     full_prompt = f"""
     You are an expert Mergers and Acquisitions (M&A) analyst AI assisting JDM Technology Group. JDM Technology Group employs a "buy and build" strategy, acquiring vertical market B2B software companies, specifically within the architecture, engineering, construction, maintenance, and operations industries. They typically target companies with their own private, critical, and very specific criteria. Your objective is to evaluate a potential target company against a specific JDM Technology Group acquisition criterion by analyzing the company's entire sitemapped website content and any supplemental web sources you are able to find.
@@ -223,7 +212,7 @@ def chat(body: ChatIn):
 
 
     response = gemini_client.models.generate_content(
-        model="gemini-3-flash-preview",
+        model="gemini-3.1-pro-preview",
         contents=full_prompt,
         config=GenerateContentConfig(
             response_mime_type="application/json",

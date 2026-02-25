@@ -188,7 +188,7 @@ function App() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ company_url: companyUrl }),
+          body: JSON.stringify({ company_url: companyUrl, criterion_id: crit.id }),
         });
 
         if (res.ok) {
