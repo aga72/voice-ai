@@ -9,7 +9,7 @@ function CriteriaAnalysisCard({ analysis }: CriteriaAnalysisCardProps) {
     const [expanded, setExpanded] = useState(false);
     const [progress, setProgress] = useState(0);
     const [showResults, setShowResults] = useState(false);
-    const durationMS = 15000; 
+    const durationMS = 45000; 
 
     const isLoaded = analysis.reasoning !== "Analyzing…";
 
@@ -80,9 +80,6 @@ function CriteriaAnalysisCard({ analysis }: CriteriaAnalysisCardProps) {
                             <span className="font-heading text-lg font-bold text-brand-blue">
                                 {analysis.matchPercentage}%
                             </span>
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold hover:drop-shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${getConfidenceStyles(analysis.confidenceScore)}`}>
-                                {analysis.confidenceScore}
-                            </span>
                         </>
                     ) : (
                         <div className="text-gray-400 text-sm font-medium animate-pulse">
@@ -116,6 +113,11 @@ function CriteriaAnalysisCard({ analysis }: CriteriaAnalysisCardProps) {
                     </span>
                     <span className="p-2 font-body text-sm text-brand-grey">
                         {analysis.reasoning}
+                    </span>
+                    <span 
+                    title="Gemini's confidence in the accuracy of this match score, based on available evidence"
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold hover:drop-shadow-lg transition-all duration-300 hover:-translate-y-0.5 ${getConfidenceStyles(analysis.confidenceScore)}`}>
+                        {analysis.confidenceScore} confidence
                     </span>
                 </div>)}
 

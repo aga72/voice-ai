@@ -3,7 +3,7 @@ export interface CriterionAnalysis {
   criterionTitle: string;
   criterionDescription: string;
   matchPercentage: number;
-  confidenceScore: number;
+  confidenceScore: string;
   reasoning: string;
   quotedEvidence: string[];
   sources: string[];
